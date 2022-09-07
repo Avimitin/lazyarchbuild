@@ -8,7 +8,7 @@ pub enum CurrentPanel {
 pub struct App {
     stats: CurrentPanel,
 
-    pkg_info_table: component::packages::PkgInfoTable,
+    pub pkg_info_table: component::packages::PkgInfoTable,
 }
 
 impl std::default::Default for App {
@@ -21,6 +21,9 @@ impl std::default::Default for App {
 }
 
 impl App {
+    pub fn stats(&self) -> &CurrentPanel {
+        &self.stats
+    }
 
     pub fn key_down(&mut self) {
         match self.stats {

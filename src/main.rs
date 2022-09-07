@@ -1,57 +1,118 @@
-mod component;
-mod tabs;
-mod req;
 mod app;
+mod component;
 mod events;
+mod req;
+mod tabs;
+mod canvas;
 
 use anyhow::Context;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::KeyCode,
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{error::Error, io, sync::{Arc, atomic::AtomicBool, mpsc}};
+use std::{
+    io,
+    sync::{atomic::AtomicBool, mpsc, Arc},
+};
 use tui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
 };
 
+macro_rules! is_running {
+    ($stats:ident) => {
+        $stats.load(std::sync::atomic::Ordering::SeqCst)
+    };
+}
+
 fn main() -> anyhow::Result<()> {
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    execute!(
+        stdout,
+        EnterAlternateScreen,
+        crossterm::event::EnableMouseCapture
+    )?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     let mut app_data = app::App::default();
 
-    let (mut tx, rx) = mpsc::channel();
+    let (tx, rx) = mpsc::channel();
 
-    let terminated = Arc::new(AtomicBool::new(false));
+    let is_running = Arc::new(AtomicBool::new(true));
 
-    while !terminated.load(std::sync::atomic::Ordering::SeqCst) {
-        let event = rx.recv().with_context(|| "Event channel close unexpectedly")?;
+    spawn_terminal_event_sender(tx, Arc::clone(&is_running));
+
+    while is_running.load(std::sync::atomic::Ordering::SeqCst) {
+        let event = rx
+            .recv()
+            .with_context(|| "Event channel close unexpectedly")?;
         match event {
-            events::Events::KeyEvent(keycode) => handle_key(keycode, Arc::clone(&terminated), &mut app_data)?,
+            events::Events::KeyEvent(keycode) => {
+                handle_key(keycode, Arc::clone(&is_running), &mut app_data)?
+            }
+        }
+
+        if let Err(err) = render(&mut terminal, &mut app_data) {
+            clean_up_terminal(&mut terminal)?;
+            eprintln!("{err}");
         }
     }
 
-    // restore terminal
+    clean_up_terminal(&mut terminal)?;
+    Ok(())
+}
+
+/// Restore the terminal screen to blank screen
+fn clean_up_terminal<B: Backend + std::io::Write>(terminal: &mut Terminal<B>) -> anyhow::Result<()> {
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
         LeaveAlternateScreen,
-        DisableMouseCapture
+        crossterm::event::DisableMouseCapture
     )?;
     terminal.show_cursor()?;
 
     Ok(())
 }
 
-fn handle_key(keycode: KeyCode, teminate: Arc<AtomicBool>, app: &mut app::App) -> anyhow::Result<()> {
+fn render<B: Backend>(terminal: &mut Terminal<B>, app: &mut app::App) -> anyhow::Result<()> {
+    match app.stats() {
+        app::CurrentPanel::Unfocus => (),
+        app::CurrentPanel::PackageStatusPanel => {
+            canvas::draw_package_table(terminal, &mut app.pkg_info_table)?;
+        },
+    };
+    Ok(())
+}
+
+fn spawn_terminal_event_sender(tx: mpsc::Sender<events::Events>, app_stats: Arc<AtomicBool>) {
+    std::thread::spawn(move || {
+        while is_running!(app_stats) {
+            let event = crossterm::event::read().unwrap();
+            #[allow(clippy::single_match)]
+            match event {
+                crossterm::event::Event::Key(key) => {
+                    tx.send(events::Events::KeyEvent(key.code)).unwrap()
+                }
+                _ => (),
+            };
+        }
+    });
+}
+
+fn handle_key(
+    keycode: KeyCode,
+    teminate: Arc<AtomicBool>,
+    app: &mut app::App,
+) -> anyhow::Result<()> {
     match keycode {
         KeyCode::Char('q') => teminate.store(true, std::sync::atomic::Ordering::SeqCst),
-        _ => ()
+        KeyCode::Up => app.key_up(),
+        KeyCode::Down => app.key_down(),
+        _ => (),
     }
 
     Ok(())
