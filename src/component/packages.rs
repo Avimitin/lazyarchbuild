@@ -1,16 +1,13 @@
 use tui::{
-    backend::Backend,
-    layout::{Constraint, Layout},
     style::{Style, Modifier},
     widgets,
-    Frame,
 };
 
 #[derive(Debug)]
 pub struct PkgInfoTableStyle {
-    title: Style,
-    row: Style,
-    selected: Style,
+    pub title: Style,
+    pub row: Style,
+    pub selected: Style,
 }
 
 impl std::default::Default for PkgInfoTableStyle {
@@ -30,12 +27,26 @@ pub struct PkgInfo {
     marks: Vec<Box<str>>,
 }
 
+impl PkgInfo {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn assignee(&self) -> &str {
+        &self.assignee
+    }
+
+    pub fn marks(&self) -> &[Box<str>] {
+        &self.marks
+    }
+}
+
 #[derive(Debug)]
 pub struct PkgInfoTable {
     title: &'static str,
-    cursor: widgets::TableState,
-    data: Vec<PkgInfo>,
-    style: PkgInfoTableStyle,
+    pub cursor: widgets::TableState,
+    pub data: Vec<PkgInfo>,
+    pub style: PkgInfoTableStyle,
 }
 
 impl std::default::Default for PkgInfoTable {
@@ -50,6 +61,10 @@ impl std::default::Default for PkgInfoTable {
 }
 
 impl PkgInfoTable {
+    pub fn title<'a>(&self) -> &'a str {
+        &*self.title
+    }
+
     pub fn next(&mut self) {
         let idx = self.cursor.selected();
         if idx.is_none() {
@@ -80,47 +95,5 @@ impl PkgInfoTable {
         } else {
             self.cursor.select(Some(idx - 1))
         }
-    }
-
-    pub fn draw<B: Backend>(&mut self, frame: &mut Frame<B>) {
-        let layout = Layout::default()
-            .constraints([Constraint::Percentage(100)].as_ref())
-            .margin(1)
-            .split(frame.size());
-
-        let title = vec![
-            widgets::Cell::from("Pkgname").style(self.style.title),
-            widgets::Cell::from("Assignee").style(self.style.title),
-            widgets::Cell::from("Marks").style(self.style.title),
-        ];
-        let header = widgets::Row::new(title)
-            .style(self.style.row)
-            .height(1);
-
-        let rows = self.data.iter().map(|pkg| {
-            let pkg = vec![
-                widgets::Cell::from(pkg.name.as_ref()),
-                widgets::Cell::from(pkg.assignee.as_ref()),
-                widgets::Cell::from(pkg.marks.join(" ")),
-            ];
-            widgets::Row::new(pkg).height(1)
-        });
-
-        let table = widgets::Table::new(rows)
-            .header(header)
-            .block(
-                widgets::Block::default()
-                    .borders(widgets::Borders::ALL)
-                    .title(self.title),
-            )
-            .highlight_style(self.style.selected)
-            .highlight_symbol(">> ")
-            .widths(&[
-                Constraint::Percentage(15),
-                Constraint::Min(20),
-                Constraint::Percentage(70),
-            ]);
-
-        frame.render_stateful_widget(table, layout[0], &mut self.cursor);
     }
 }
