@@ -26,7 +26,8 @@ macro_rules! is_running {
     };
 }
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -45,7 +46,19 @@ fn main() -> anyhow::Result<()> {
 
     spawn_terminal_event_sender(tx, Arc::clone(&is_running));
 
+    let mut first_run = true;
+
     while is_running.load(std::sync::atomic::Ordering::SeqCst) {
+        if first_run {
+            app_data.update().unwrap();
+            first_run = false;
+
+            if let Err(err) = render(&mut terminal, &mut app_data) {
+                clean_up_terminal(&mut terminal)?;
+                eprintln!("{err}");
+            }
+        }
+
         let event = rx
             .recv()
             .with_context(|| "Event channel close unexpectedly")?;
@@ -80,7 +93,9 @@ fn clean_up_terminal<B: Backend + std::io::Write>(terminal: &mut Terminal<B>) ->
 
 fn render<B: Backend>(terminal: &mut Terminal<B>, app: &mut app::App) -> anyhow::Result<()> {
     match app.stats() {
-        app::CurrentPanel::Unfocus => (),
+        app::CurrentPanel::Unfocus => {
+            canvas::draw_package_table(terminal, &mut app.pkg_info_table)?;
+        },
         app::CurrentPanel::PackageStatusPanel => {
             canvas::draw_package_table(terminal, &mut app.pkg_info_table)?;
         },
@@ -105,11 +120,11 @@ fn spawn_terminal_event_sender(tx: mpsc::Sender<events::Events>, app_stats: Arc<
 
 fn handle_key(
     keycode: KeyCode,
-    teminate: Arc<AtomicBool>,
+    running: Arc<AtomicBool>,
     app: &mut app::App,
 ) -> anyhow::Result<()> {
     match keycode {
-        KeyCode::Char('q') => teminate.store(true, std::sync::atomic::Ordering::SeqCst),
+        KeyCode::Char('q') => running.store(false, std::sync::atomic::Ordering::SeqCst),
         KeyCode::Up => app.key_up(),
         KeyCode::Down => app.key_down(),
         _ => (),
