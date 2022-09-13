@@ -2,6 +2,7 @@ use tui::{
     style::{Style, Modifier},
     widgets,
 };
+use typed_builder::TypedBuilder;
 
 #[derive(Debug)]
 pub struct PkgInfoTableStyle {
@@ -20,10 +21,12 @@ impl std::default::Default for PkgInfoTableStyle {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, TypedBuilder)]
 pub struct PkgInfo {
     name: Box<str>,
+    #[builder(default_code = "\"\".into()")]
     assignee: Box<str>,
+    #[builder(default)]
     marks: Vec<Box<str>>,
 }
 
