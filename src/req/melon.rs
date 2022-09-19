@@ -3,6 +3,20 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Deserializer};
 
+pub async fn fetch() -> anyhow::Result<Response> {
+    let endpoint = "https://plct-arv.de2670dd.top/pkg";
+    let client = reqwest::Client::new();
+    let response = client
+        .get(endpoint)
+        .header("user-agent", "PLCT::ArchRV.StatusWorker")
+        .send()
+        .await?;
+    let response = response.bytes().await?;
+    let response: Response = serde_json::from_slice(&response)?;
+
+    Ok(response)
+}
+
 #[derive(Deserialize)]
 pub struct Response {
     #[serde(rename = "workList")]
@@ -37,9 +51,7 @@ where
 {
     let s: HashMap<String, String> = HashMap::deserialize(d)?;
 
-    let alias: Box<str> = s["alias"]
-        .as_str()
-        .into();
+    let alias: Box<str> = s["alias"].as_str().into();
 
     Ok(alias)
 }
