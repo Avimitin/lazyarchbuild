@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use scraper::{Html, Selector};
 
-const RAW_STR: &str = "https://archriscv.felixc.at/.status/status.htm";
+const END_POINT: &str = "https://archriscv.felixc.at/.status/status.htm";
 
 type BoxStr = Box<str>;
 
@@ -32,7 +32,7 @@ impl PackageStatus {
             .expect("Fail to create HTTP client to download status from felixc.at");
 
         let response = client
-            .get(RAW_STR)
+            .get(END_POINT)
             .send()
             .await
             .with_context(|| "fail to download status from felixc.at")?
@@ -46,6 +46,15 @@ impl PackageStatus {
 
         let parsed = selected
             .into_iter()
+            .filter(|elem| {
+                // remove those package which is neither FTBFS or leaf
+                let parts = elem.text().collect::<Vec<_>>();
+                let status = parts[2];
+                let is_ftbfs_pkg = status.contains("FTBFS");
+                let is_leaf_pkg = status.contains("Leaf package");
+
+                is_ftbfs_pkg || is_leaf_pkg
+            })
             .map(|element| {
                 let raw_str = element.text().collect::<Vec<_>>();
                 Self::from(&raw_str)
