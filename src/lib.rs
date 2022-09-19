@@ -1,9 +1,9 @@
 mod app;
+pub mod canvas;
 mod component;
 mod events;
 mod req;
 mod tabs;
-pub mod canvas;
 
 use anyhow::Context;
 use crossterm::{
@@ -54,6 +54,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     while is_running.load(std::sync::atomic::Ordering::SeqCst) {
         if first_run {
+            canvas::draw_welcome_page(&mut terminal)?;
             app_data.update().unwrap();
             first_run = false;
         }
@@ -78,7 +79,9 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 /// Restore the terminal screen to blank screen
-pub fn clean_up_terminal<B: Backend + std::io::Write>(terminal: &mut Terminal<B>) -> anyhow::Result<()> {
+pub fn clean_up_terminal<B: Backend + std::io::Write>(
+    terminal: &mut Terminal<B>,
+) -> anyhow::Result<()> {
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
@@ -94,10 +97,10 @@ fn render<B: Backend>(terminal: &mut Terminal<B>, app: &mut app::App) -> anyhow:
     match app.stats() {
         app::CurrentPanel::Unfocus => {
             canvas::draw_package_table(terminal, &mut app.pkg_info_table)?;
-        },
+        }
         app::CurrentPanel::PackageStatusPanel => {
             canvas::draw_package_table(terminal, &mut app.pkg_info_table)?;
-        },
+        }
     };
     Ok(())
 }

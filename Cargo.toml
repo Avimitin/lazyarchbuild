@@ -3,6 +3,21 @@ name = "lazyarchbuild"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "lzr"
+path = "src/bin/lzr.rs"
+doc = false
+
+[lib]
+test = true
+
+[profile.release]
+debug = 0
+strip = "symbols"
+lto = true
+opt-level = 3
+codegen-units = 1
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

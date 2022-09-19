@@ -1,5 +1,5 @@
 use tui::{
-    style::{Style, Modifier},
+    style::{Modifier, Style},
     widgets,
 };
 use typed_builder::TypedBuilder;

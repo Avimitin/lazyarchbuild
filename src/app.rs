@@ -1,5 +1,5 @@
 use crate::component::{self, packages::PkgInfo};
-use std::sync::{ Arc, Mutex };
+use std::sync::{Arc, Mutex};
 
 pub enum CurrentPanel {
     Unfocus,
@@ -31,11 +31,8 @@ impl App {
     pub fn update(&mut self) -> anyhow::Result<()> {
         use crate::req;
 
-        let felix_status = async_eval!({
-            async move {
-                tokio::join!(req::felix::PackageStatus::download())
-            }
-        });
+        let felix_status =
+            async_eval!({ async move { tokio::join!(req::felix::PackageStatus::download()) } });
 
         if let (Ok(status),) = felix_status {
             let data = status

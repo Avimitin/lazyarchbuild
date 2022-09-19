@@ -1,10 +1,66 @@
 use tui::{
     backend::Backend,
-    layout::{Constraint, Layout},
-    terminal, widgets,
+    layout::{Constraint, Direction, Layout},
+    style::{Modifier, Style},
+    terminal,
+    text::{Span, Spans},
+    widgets::{self, Block, BorderType, Borders, Paragraph},
 };
 
 use crate::component;
+
+pub fn draw_welcome_page<B: Backend>(terminal: &mut terminal::Terminal<B>) -> anyhow::Result<()> {
+    terminal.draw(|frame| {
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints(
+                [
+                    Constraint::Percentage(40),
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(40),
+                ]
+                .as_ref(),
+            )
+            .split(frame.size());
+
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(
+                [
+                    Constraint::Percentage(40),
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(40),
+                ]
+                .as_ref(),
+            )
+            .split(chunks[1]);
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded);
+
+        let welcome_text = vec![
+            Spans::from(Span::styled(
+                "Fetching Package Info",
+                Style::default().add_modifier(Modifier::BOLD),
+            )),
+            Spans::from("Please wait a secs..."),
+        ];
+
+        let paragraph = Paragraph::new(welcome_text)
+            .style(
+                Style::default()
+                    .bg(tui::style::Color::White)
+                    .fg(tui::style::Color::Blue),
+            )
+            .block(block)
+            .alignment(tui::layout::Alignment::Center);
+
+        frame.render_widget(paragraph, chunks[1])
+    })?;
+
+    Ok(())
+}
 
 pub fn draw_package_table<B: Backend>(
     terminal: &mut terminal::Terminal<B>,
