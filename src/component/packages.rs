@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use tui::{
     style::{Modifier, Style},
     widgets,
@@ -28,6 +30,10 @@ pub struct PkgInfo {
     assignee: Box<str>,
     #[builder(default)]
     marks: Vec<Box<str>>,
+    #[builder(default_code = "false")]
+    rotten: bool,
+    #[builder(default_code = "\"\".into()")]
+    process: Box<str>,
 }
 
 impl PkgInfo {
@@ -42,13 +48,21 @@ impl PkgInfo {
     pub fn marks(&self) -> &[Box<str>] {
         &self.marks
     }
+
+    pub fn is_rotten(&self) -> bool {
+        self.rotten
+    }
+
+    pub fn current_process(&self) -> &str {
+        &self.process
+    }
 }
 
 #[derive(Debug)]
 pub struct PkgInfoTable {
     title: &'static str,
     pub cursor: widgets::TableState,
-    pub data: Vec<PkgInfo>,
+    pub data: HashMap<Box<str>, PkgInfo>,
     pub style: PkgInfoTableStyle,
 }
 
@@ -57,7 +71,7 @@ impl std::default::Default for PkgInfoTable {
         Self {
             title: "Arch Linux RISC-V Packages Status",
             cursor: widgets::TableState::default(),
-            data: Vec::new(),
+            data: HashMap::new(),
             style: PkgInfoTableStyle::default(),
         }
     }

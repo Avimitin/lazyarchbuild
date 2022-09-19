@@ -1,5 +1,5 @@
 use crate::component::{self, packages::PkgInfo};
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 pub enum CurrentPanel {
     Unfocus,
@@ -10,6 +10,12 @@ pub struct App {
     stats: CurrentPanel,
 
     pub pkg_info_table: component::packages::PkgInfoTable,
+    fetch_status: Arc<Mutex<FetchStatus>>,
+}
+
+struct FetchStatus {
+    felix: bool,
+    melon: bool,
 }
 
 impl std::default::Default for App {
@@ -17,6 +23,10 @@ impl std::default::Default for App {
         Self {
             stats: CurrentPanel::Unfocus,
             pkg_info_table: component::packages::PkgInfoTable::default(),
+            fetch_status: Arc::new(Mutex::new(FetchStatus {
+                felix: false,
+                melon: false,
+            })),
         }
     }
 }
@@ -37,8 +47,8 @@ impl App {
         if let (Ok(status),) = felix_status {
             let data = status
                 .into_iter()
-                .map(|s| PkgInfo::builder().name(s.pkgname).build())
-                .collect::<Vec<_>>();
+                .map(|s| (s.pkgname.clone(), PkgInfo::builder().name(s.pkgname).build()))
+                .collect::<HashMap<_, _>>();
             self.pkg_info_table.data = data;
         }
 
