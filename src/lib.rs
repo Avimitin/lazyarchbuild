@@ -3,7 +3,7 @@ mod component;
 mod events;
 mod req;
 mod tabs;
-mod canvas;
+pub mod canvas;
 
 use anyhow::Context;
 use crossterm::{
@@ -26,8 +26,7 @@ macro_rules! is_running {
     };
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+pub fn setup_crossterm_terminal() -> anyhow::Result<Terminal<CrosstermBackend<std::io::Stdout>>> {
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -37,7 +36,12 @@ async fn main() -> anyhow::Result<()> {
         crossterm::event::EnableMouseCapture
     )?;
     let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+    let terminal = Terminal::new(backend)?;
+    Ok(terminal)
+}
+
+pub async fn run() -> anyhow::Result<()> {
+    let mut terminal = setup_crossterm_terminal()?;
     let mut app_data = app::App::default();
 
     let (tx, rx) = mpsc::channel();
@@ -52,11 +56,11 @@ async fn main() -> anyhow::Result<()> {
         if first_run {
             app_data.update().unwrap();
             first_run = false;
+        }
 
-            if let Err(err) = render(&mut terminal, &mut app_data) {
-                clean_up_terminal(&mut terminal)?;
-                eprintln!("{err}");
-            }
+        if let Err(err) = render(&mut terminal, &mut app_data) {
+            clean_up_terminal(&mut terminal)?;
+            eprintln!("{err}");
         }
 
         let event = rx
@@ -67,11 +71,6 @@ async fn main() -> anyhow::Result<()> {
                 handle_key(keycode, Arc::clone(&is_running), &mut app_data)?
             }
         }
-
-        if let Err(err) = render(&mut terminal, &mut app_data) {
-            clean_up_terminal(&mut terminal)?;
-            eprintln!("{err}");
-        }
     }
 
     clean_up_terminal(&mut terminal)?;
@@ -79,7 +78,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 /// Restore the terminal screen to blank screen
-fn clean_up_terminal<B: Backend + std::io::Write>(terminal: &mut Terminal<B>) -> anyhow::Result<()> {
+pub fn clean_up_terminal<B: Backend + std::io::Write>(terminal: &mut Terminal<B>) -> anyhow::Result<()> {
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
