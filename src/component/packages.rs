@@ -23,17 +23,25 @@ impl std::default::Default for PkgInfoTableStyle {
     }
 }
 
-#[derive(Debug, TypedBuilder)]
+#[derive(Debug)]
 pub struct PkgInfo {
-    name: Box<str>,
-    #[builder(default_code = "\"\".into()")]
-    assignee: Box<str>,
-    #[builder(default)]
-    marks: Vec<Box<str>>,
-    #[builder(default_code = "false")]
-    rotten: bool,
-    #[builder(default_code = "\"\".into()")]
-    process: Box<str>,
+    pub name: Box<str>,
+    pub assignee: Box<str>,
+    pub marks: Vec<Box<str>>,
+    pub rotten: bool,
+    pub process: Box<str>,
+}
+
+impl std::default::Default for PkgInfo {
+    fn default() -> Self {
+        Self {
+            name: "".into(),
+            assignee: "".into(),
+            marks: Vec::new(),
+            rotten: false,
+            process: "".into(),
+        }
+    }
 }
 
 impl PkgInfo {

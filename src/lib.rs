@@ -4,6 +4,7 @@ mod component;
 mod events;
 mod req;
 mod tabs;
+mod types;
 
 use anyhow::Context;
 use crossterm::{
