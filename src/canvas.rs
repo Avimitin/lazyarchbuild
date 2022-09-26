@@ -98,9 +98,9 @@ pub fn draw_package_table<B: Backend>(
             .highlight_style(data.style.selected)
             .highlight_symbol(">> ")
             .widths(&[
-                Constraint::Percentage(15),
+                Constraint::Percentage(35),
                 Constraint::Min(20),
-                Constraint::Percentage(70),
+                Constraint::Percentage(45),
             ]);
 
         frame.render_stateful_widget(table, layout[0], &mut data.cursor);
