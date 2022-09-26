@@ -133,6 +133,7 @@ impl App {
         buffer
             .into_values()
             .map(|builder| builder.build().unwrap())
+            .filter(|pkg| pkg.has_assignee() || pkg.has_process() || pkg.has_marks())
             .collect::<Vec<_>>()
     }
 

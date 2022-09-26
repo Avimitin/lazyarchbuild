@@ -29,14 +29,14 @@ impl std::default::Default for PkgInfoTableStyle {
 pub struct PkgInfo {
     #[builder(default = "\"\".into()")]
     pub name: Box<str>,
-    #[builder(default = "\"\".into()")]
-    pub assignee: Box<str>,
+    #[builder(setter(strip_option), default = "None")]
+    pub assignee: Option<Box<str>>,
     #[builder(default = "Vec::new()")]
     pub marks: Vec<Mark>,
     #[builder(default = "false")]
     pub rotten: bool,
-    #[builder(default = "\"\".into()")]
-    pub process: Box<str>,
+    #[builder(setter(strip_option), default = "None")]
+    pub process: Option<Box<str>>,
 }
 
 impl PkgInfo {
@@ -44,8 +44,24 @@ impl PkgInfo {
         &self.name
     }
 
+    pub fn has_assignee(&self) -> bool {
+        self.assignee.is_some()
+    }
+
+    pub fn has_process(&self) -> bool {
+        self.process.is_some()
+    }
+
+    pub fn has_marks(&self) -> bool {
+        !self.marks.is_empty()
+    }
+
     pub fn assignee(&self) -> &str {
-        &self.assignee
+        if let Some(ref ae) = self.assignee {
+            ae
+        } else {
+            ""
+        }
     }
 
     pub fn marks(&self) -> Box<[&str]> {
@@ -60,7 +76,11 @@ impl PkgInfo {
     }
 
     pub fn current_process(&self) -> &str {
-        &self.process
+        if let Some(ref pc) = self.process {
+            pc
+        } else {
+            ""
+        }
     }
 }
 
