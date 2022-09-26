@@ -165,6 +165,22 @@ impl App {
         }
     }
 
+    pub fn key_begining(&mut self) {
+        let table = &mut self.pkg_info_table;
+        match self.stats {
+            CurrentPanel::PackageStatusPanel => table.beginning(),
+            CurrentPanel::Unfocus => table.beginning(),
+        }
+    }
+
+    pub fn key_end(&mut self) {
+        let table = &mut self.pkg_info_table;
+        match self.stats {
+            CurrentPanel::PackageStatusPanel => table.end(),
+            CurrentPanel::Unfocus => table.end(),
+        }
+    }
+
     pub fn key_right(&mut self) {
         match self.stats {
             CurrentPanel::PackageStatusPanel => (),

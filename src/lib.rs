@@ -128,6 +128,7 @@ fn handle_key(
 ) -> anyhow::Result<()> {
     match keycode {
         KeyCode::Char('q') => running.store(false, std::sync::atomic::Ordering::SeqCst),
+        KeyCode::Char('G') => app.key_end(),
         KeyCode::Up => app.key_up(),
         KeyCode::Down => app.key_down(),
         _ => (),

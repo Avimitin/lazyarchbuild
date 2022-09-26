@@ -139,4 +139,12 @@ impl PkgInfoTable {
             self.cursor.select(Some(idx - 1))
         }
     }
+
+    pub fn beginning(&mut self) {
+        self.cursor.select(Some(0))
+    }
+
+    pub fn end(&mut self) {
+        self.cursor.select(Some(self.data.len() - 1))
+    }
 }
