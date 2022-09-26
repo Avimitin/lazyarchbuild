@@ -7,7 +7,7 @@ pub struct MarkList {
     pub marks: Vec<Mark>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Mark {
     pub name: Box<str>,
     #[serde(deserialize_with = "flatten")]

@@ -1,6 +1,9 @@
 use tokio::sync::Mutex;
 
-use crate::component::{self, packages::{PkgInfo, PkgInfoBuilder}};
+use crate::component::{
+    self,
+    packages::{PkgInfo, PkgInfoBuilder},
+};
 use std::{collections::HashMap, sync::Arc};
 
 pub enum CurrentPanel {
@@ -27,10 +30,14 @@ macro_rules! async_eval {
     ($code:block) => {
         tokio::task::block_in_place(move || tokio::runtime::Handle::current().block_on($code))
     };
+
+    ($func:expr) => {
+        tokio::task::block_in_place(move || tokio::runtime::Handle::current().block_on($func))
+    };
 }
 
 impl App {
-    async fn fetch_data() {
+    async fn fetch_data() -> Vec<PkgInfo> {
         use crate::req;
 
         enum Message {
@@ -68,7 +75,7 @@ impl App {
                 .expect("Unexpected closed channel during sending download message");
         });
 
-        let mut buffer: HashMap<Box<str>, PkgInfo> = HashMap::new();
+        let mut buffer: HashMap<Box<str>, PkgInfoBuilder> = HashMap::new();
 
         loop {
             if status.is_done() {
@@ -86,9 +93,8 @@ impl App {
                     });
 
                     for pkg in pkgs {
-                        if  buffer.get_mut(&pkg.pkgname).is_none() {
-                            let mut builder = PkgInfo::default();
-                            builder.name = pkg.pkgname.clone();
+                        if buffer.get_mut(&pkg.pkgname).is_none() {
+                            let builder = PkgInfoBuilder::default().name(pkg.pkgname.clone());
                             buffer.insert(pkg.pkgname, builder);
                         }
                     }
@@ -104,16 +110,36 @@ impl App {
                     }
 
                     for mark in pkgs.marklist {
-                        if let Some(builder) = buffer.get_mut(&mark.name) {
+                        let builder = buffer
+                            .remove(&mark.name)
+                            .unwrap_or_else(|| PkgInfoBuilder::default().name(mark.name.clone()));
+                        let builder = builder.marks(mark.marks);
+                        buffer.insert(mark.name, builder);
+                    }
+
+                    for work in pkgs.worklist {
+                        for pack in work.packages {
+                            let builder = buffer
+                                .remove(pack.as_ref())
+                                .unwrap_or_else(|| PkgInfoBuilder::default().name(pack.clone()));
+                            let builder = builder.assignee(work.alias.clone());
+                            buffer.insert(pack, builder);
                         }
                     }
-                },
+                }
             }
         }
+
+        buffer
+            .into_values()
+            .map(|builder| builder.build().unwrap())
+            .collect::<Vec<_>>()
     }
 
     pub fn update(&mut self) -> anyhow::Result<()> {
-        use crate::req;
+        let new_data = async_eval!(App::fetch_data());
+
+        self.pkg_info_table.data = new_data;
 
         Ok(())
     }

@@ -79,7 +79,7 @@ pub fn draw_package_table<B: Backend>(
         ];
         let header = widgets::Row::new(title).style(data.style.row).height(1);
 
-        let rows = data.data.values().map(|pkg| {
+        let rows = data.data.iter().map(|pkg| {
             let pkg = vec![
                 widgets::Cell::from(pkg.name()),
                 widgets::Cell::from(pkg.assignee()),

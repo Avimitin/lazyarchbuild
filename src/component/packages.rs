@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
+use crate::types::Mark;
+use derive_builder::Builder;
 use tui::{
     style::{Modifier, Style},
     widgets,
 };
-use typed_builder::TypedBuilder;
 
-#[derive(Debug)]
+#[derive(Debug, Builder)]
 pub struct PkgInfoTableStyle {
     pub title: Style,
     pub row: Style,
@@ -23,25 +24,19 @@ impl std::default::Default for PkgInfoTableStyle {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Builder)]
+#[builder(pattern = "owned")]
 pub struct PkgInfo {
+    #[builder(default = "\"\".into()")]
     pub name: Box<str>,
+    #[builder(default = "\"\".into()")]
     pub assignee: Box<str>,
-    pub marks: Vec<Box<str>>,
+    #[builder(default = "Vec::new()")]
+    pub marks: Vec<Mark>,
+    #[builder(default = "false")]
     pub rotten: bool,
+    #[builder(default = "\"\".into()")]
     pub process: Box<str>,
-}
-
-impl std::default::Default for PkgInfo {
-    fn default() -> Self {
-        Self {
-            name: "".into(),
-            assignee: "".into(),
-            marks: Vec::new(),
-            rotten: false,
-            process: "".into(),
-        }
-    }
 }
 
 impl PkgInfo {
@@ -53,8 +48,11 @@ impl PkgInfo {
         &self.assignee
     }
 
-    pub fn marks(&self) -> &[Box<str>] {
-        &self.marks
+    pub fn marks(&self) -> Box<[&str]> {
+        self.marks
+            .iter()
+            .map(|elem| elem.name.as_ref())
+            .collect::<Box<_>>()
     }
 
     pub fn is_rotten(&self) -> bool {
@@ -70,7 +68,7 @@ impl PkgInfo {
 pub struct PkgInfoTable {
     title: &'static str,
     pub cursor: widgets::TableState,
-    pub data: HashMap<Box<str>, PkgInfo>,
+    pub data: Vec<PkgInfo>,
     pub style: PkgInfoTableStyle,
 }
 
@@ -79,7 +77,7 @@ impl std::default::Default for PkgInfoTable {
         Self {
             title: "Arch Linux RISC-V Packages Status",
             cursor: widgets::TableState::default(),
-            data: HashMap::new(),
+            data: Vec::new(),
             style: PkgInfoTableStyle::default(),
         }
     }
@@ -87,7 +85,7 @@ impl std::default::Default for PkgInfoTable {
 
 impl PkgInfoTable {
     pub fn title<'a>(&self) -> &'a str {
-        &*self.title
+        self.title
     }
 
     pub fn next(&mut self) {
