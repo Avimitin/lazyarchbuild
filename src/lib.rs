@@ -95,12 +95,12 @@ pub fn clean_up_terminal<B: Backend + std::io::Write>(
 }
 
 fn render<B: Backend>(terminal: &mut Terminal<B>, app: &mut app::App) -> anyhow::Result<()> {
-    match app.stats() {
-        app::CurrentPanel::Unfocus => {
+    match app.current_display() {
+        app::DisplayMode::ViewingPackageStatusTable => {
             canvas::draw_package_table(terminal, &mut app.pkg_info_table)?;
         }
-        app::CurrentPanel::PackageStatusPanel => {
-            canvas::draw_package_table(terminal, &mut app.pkg_info_table)?;
+        app::DisplayMode::PopUpPstMenu => {
+            canvas::draw_popup_pst_menu(terminal, &mut app.pkg_info_table)?;
         }
     };
     Ok(())
@@ -135,6 +135,13 @@ fn handle_key(
             }
             KeyCode::Up | KeyCode::Char('j') => app.key_up(),
             KeyCode::Down | KeyCode::Char('k') => app.key_down(),
+            #[allow(clippy::single_match)]
+            KeyCode::Enter => match app.current_display() {
+                app::DisplayMode::ViewingPackageStatusTable => {
+                    app.show_pst_menu();
+                }
+                _ => (),
+            },
             _ => (),
         },
         app::InputMode::HasPrefix(prefix) => {
@@ -143,6 +150,7 @@ fn handle_key(
             }
             match prefix[0] {
                 KeyCode::Char('g') => match keycode {
+                    // handle key 'gg'
                     KeyCode::Char('g') => {
                         app.key_begining();
                         app.reset_input_mode();

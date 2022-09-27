@@ -6,9 +6,10 @@ use crate::component::{
 };
 use std::collections::HashMap;
 
-pub enum CurrentPanel {
-    Unfocus,
-    PackageStatusPanel,
+pub enum DisplayMode {
+    ViewingPackageStatusTable,
+    /// Show menu for package status table
+    PopUpPstMenu,
 }
 
 pub enum InputMode {
@@ -17,7 +18,7 @@ pub enum InputMode {
 }
 
 pub struct App {
-    stats: CurrentPanel,
+    current_display: DisplayMode,
 
     pub input_mode: InputMode,
     pub pkg_info_table: component::packages::PkgInfoTable,
@@ -26,7 +27,7 @@ pub struct App {
 impl std::default::Default for App {
     fn default() -> Self {
         Self {
-            stats: CurrentPanel::Unfocus,
+            current_display: DisplayMode::ViewingPackageStatusTable,
             input_mode: InputMode::Normal,
             pkg_info_table: component::packages::PkgInfoTable::default(),
         }
@@ -158,39 +159,44 @@ impl App {
         Ok(())
     }
 
-    pub fn stats(&self) -> &CurrentPanel {
-        &self.stats
+    pub fn current_display(&self) -> &DisplayMode {
+        &self.current_display
+    }
+
+    /// Set current display to a menu that showing available option for current selection
+    pub fn show_pst_menu(&mut self) {
+        self.current_display = DisplayMode::PopUpPstMenu;
     }
 
     pub fn key_down(&mut self) {
         let table = &mut self.pkg_info_table;
-        match self.stats {
-            CurrentPanel::PackageStatusPanel => table.next(),
-            CurrentPanel::Unfocus => table.next(),
+        match self.current_display {
+            DisplayMode::ViewingPackageStatusTable => table.next(),
+            _ => (),
         }
     }
 
     pub fn key_up(&mut self) {
         let table = &mut self.pkg_info_table;
-        match self.stats {
-            CurrentPanel::PackageStatusPanel => table.previous(),
-            CurrentPanel::Unfocus => table.previous(),
+        match self.current_display {
+            DisplayMode::ViewingPackageStatusTable => table.previous(),
+            _ => (),
         }
     }
 
     pub fn key_begining(&mut self) {
         let table = &mut self.pkg_info_table;
-        match self.stats {
-            CurrentPanel::PackageStatusPanel => table.beginning(),
-            CurrentPanel::Unfocus => table.beginning(),
+        match self.current_display {
+            DisplayMode::ViewingPackageStatusTable => table.beginning(),
+            _ => (),
         }
     }
 
     pub fn key_end(&mut self) {
         let table = &mut self.pkg_info_table;
-        match self.stats {
-            CurrentPanel::PackageStatusPanel => table.end(),
-            CurrentPanel::Unfocus => table.end(),
+        match self.current_display {
+            DisplayMode::ViewingPackageStatusTable => table.end(),
+            _ => (),
         }
     }
 }

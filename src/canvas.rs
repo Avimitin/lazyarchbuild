@@ -1,10 +1,11 @@
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     terminal,
     text::{Span, Spans},
-    widgets::{self, Block, BorderType, Borders, Paragraph},
+    widgets::{self, Block, BorderType, Borders, Clear, List, ListItem, Paragraph},
+    Frame,
 };
 
 use crate::component;
@@ -68,48 +69,108 @@ pub fn draw_welcome_page<B: Backend>(terminal: &mut terminal::Terminal<B>) -> an
     Ok(())
 }
 
+fn draw_pkg_table_frame<B: Backend>(
+    frame: &mut Frame<B>,
+    data: &mut component::packages::PkgInfoTable,
+) {
+    let layout = Layout::default()
+        .constraints([Constraint::Percentage(100)].as_ref())
+        .margin(1)
+        .split(frame.size());
+
+    let title = vec![
+        widgets::Cell::from("Pkgname").style(data.style.title),
+        widgets::Cell::from("Assignee").style(data.style.title),
+        widgets::Cell::from("Marks").style(data.style.title),
+    ];
+    let header = widgets::Row::new(title).style(data.style.row).height(1);
+
+    let rows = data.data.iter().map(|pkg| {
+        let pkg = vec![
+            widgets::Cell::from(pkg.name()),
+            widgets::Cell::from(pkg.assignee()),
+            widgets::Cell::from(pkg.marks().join(" ")),
+        ];
+        widgets::Row::new(pkg).height(1)
+    });
+
+    let table = widgets::Table::new(rows)
+        .header(header)
+        .block(
+            widgets::Block::default()
+                .borders(widgets::Borders::ALL)
+                .title(data.title()),
+        )
+        .highlight_style(data.style.selected)
+        .highlight_symbol(">> ")
+        .widths(&[
+            Constraint::Percentage(35),
+            Constraint::Min(20),
+            Constraint::Percentage(45),
+        ]);
+
+    frame.render_stateful_widget(table, layout[0], &mut data.cursor);
+}
+
 pub fn draw_package_table<B: Backend>(
     terminal: &mut terminal::Terminal<B>,
     data: &mut component::packages::PkgInfoTable,
 ) -> anyhow::Result<()> {
+    terminal.draw(|frame| draw_pkg_table_frame(frame, data))?;
+    Ok(())
+}
+
+/// Build a rectangle that center itself at the middle
+fn build_centered_rect(x: u16, y: u16, r: Rect) -> Rect {
+    let popup = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - y) / 2),
+                Constraint::Percentage(y),
+                Constraint::Percentage((100 - y) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - x) / 2),
+                Constraint::Percentage(x),
+                Constraint::Percentage((100 - x) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(popup[1])[1]
+}
+
+pub fn draw_popup_pst_menu<B: Backend>(
+    terminal: &mut terminal::Terminal<B>,
+    data: &mut component::packages::PkgInfoTable,
+) -> anyhow::Result<()> {
     terminal.draw(|frame| {
-        let layout = Layout::default()
-            .constraints([Constraint::Percentage(100)].as_ref())
-            .margin(1)
-            .split(frame.size());
-
-        let title = vec![
-            widgets::Cell::from("Pkgname").style(data.style.title),
-            widgets::Cell::from("Assignee").style(data.style.title),
-            widgets::Cell::from("Marks").style(data.style.title),
+        draw_pkg_table_frame(frame, data);
+        let block = Block::default().title("Menu").borders(Borders::ALL);
+        let items = vec![
+            ListItem::new("Add").style(Style::default().fg(tui::style::Color::White)),
+            ListItem::new("Drop").style(Style::default().fg(tui::style::Color::White)),
+            ListItem::new("View Log").style(Style::default().fg(tui::style::Color::White)),
+            ListItem::new("View PKGBUILD").style(Style::default().fg(tui::style::Color::White)),
         ];
-        let header = widgets::Row::new(title).style(data.style.row).height(1);
-
-        let rows = data.data.iter().map(|pkg| {
-            let pkg = vec![
-                widgets::Cell::from(pkg.name()),
-                widgets::Cell::from(pkg.assignee()),
-                widgets::Cell::from(pkg.marks().join(" ")),
-            ];
-            widgets::Row::new(pkg).height(1)
-        });
-
-        let table = widgets::Table::new(rows)
-            .header(header)
-            .block(
-                widgets::Block::default()
-                    .borders(widgets::Borders::ALL)
-                    .title(data.title()),
+        let items = List::new(items)
+            .block(block)
+            .highlight_style(
+                Style::default()
+                    .bg(tui::style::Color::LightGreen)
+                    .add_modifier(Modifier::BOLD),
             )
-            .highlight_style(data.style.selected)
-            .highlight_symbol(">> ")
-            .widths(&[
-                Constraint::Percentage(35),
-                Constraint::Min(20),
-                Constraint::Percentage(45),
-            ]);
-
-        frame.render_stateful_widget(table, layout[0], &mut data.cursor);
+            .highlight_symbol(">> ");
+        let draw_area = build_centered_rect(60, 20, frame.size());
+        frame.render_widget(Clear, draw_area);
+        frame.render_widget(items, draw_area);
     })?;
     Ok(())
 }
