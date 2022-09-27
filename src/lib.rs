@@ -126,12 +126,32 @@ fn handle_key(
     running: Arc<AtomicBool>,
     app: &mut app::App,
 ) -> anyhow::Result<()> {
-    match keycode {
-        KeyCode::Char('q') => running.store(false, std::sync::atomic::Ordering::SeqCst),
-        KeyCode::Char('G') => app.key_end(),
-        KeyCode::Up => app.key_up(),
-        KeyCode::Down => app.key_down(),
-        _ => (),
+    match &app.input_mode {
+        app::InputMode::Normal => match keycode {
+            KeyCode::Char('q') => running.store(false, std::sync::atomic::Ordering::SeqCst),
+            KeyCode::Char('G') => app.key_end(),
+            KeyCode::Char('g') => {
+                app.input_mode = app::InputMode::HasPrefix(vec![KeyCode::Char('g')]);
+            }
+            KeyCode::Up | KeyCode::Char('j') => app.key_up(),
+            KeyCode::Down | KeyCode::Char('k') => app.key_down(),
+            _ => (),
+        },
+        app::InputMode::HasPrefix(prefix) => {
+            if prefix.is_empty() {
+                panic!("some logical error occurs for keys");
+            }
+            match prefix[0] {
+                KeyCode::Char('g') => match keycode {
+                    KeyCode::Char('g') => {
+                        app.key_begining();
+                        app.reset_input_mode();
+                    },
+                    _ => app.reset_input_mode(),
+                },
+                _ => app.reset_input_mode(),
+            }
+        }
     }
 
     Ok(())

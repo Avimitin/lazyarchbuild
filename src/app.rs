@@ -1,19 +1,25 @@
-use tokio::sync::Mutex;
+use crossterm::event::KeyCode;
 
 use crate::component::{
     self,
     packages::{PkgInfo, PkgInfoBuilder},
 };
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 pub enum CurrentPanel {
     Unfocus,
     PackageStatusPanel,
 }
 
+pub enum InputMode {
+    Normal,
+    HasPrefix(Vec<KeyCode>)
+}
+
 pub struct App {
     stats: CurrentPanel,
 
+    pub input_mode: InputMode,
     pub pkg_info_table: component::packages::PkgInfoTable,
 }
 
@@ -21,6 +27,7 @@ impl std::default::Default for App {
     fn default() -> Self {
         Self {
             stats: CurrentPanel::Unfocus,
+            input_mode: InputMode::Normal,
             pkg_info_table: component::packages::PkgInfoTable::default(),
         }
     }
@@ -37,6 +44,10 @@ macro_rules! async_eval {
 }
 
 impl App {
+    pub fn reset_input_mode(&mut self) {
+        self.input_mode = InputMode::Normal;
+    }
+
     async fn fetch_data() -> Vec<PkgInfo> {
         use crate::req;
 
