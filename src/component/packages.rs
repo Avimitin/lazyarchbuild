@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::types::Mark;
 use derive_builder::Builder;
 use tui::{

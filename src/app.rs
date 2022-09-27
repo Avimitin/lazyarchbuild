@@ -13,7 +13,7 @@ pub enum CurrentPanel {
 
 pub enum InputMode {
     Normal,
-    HasPrefix(Vec<KeyCode>)
+    HasPrefix(Vec<KeyCode>),
 }
 
 pub struct App {
@@ -189,20 +189,6 @@ impl App {
         match self.stats {
             CurrentPanel::PackageStatusPanel => table.end(),
             CurrentPanel::Unfocus => table.end(),
-        }
-    }
-
-    pub fn key_right(&mut self) {
-        match self.stats {
-            CurrentPanel::PackageStatusPanel => (),
-            CurrentPanel::Unfocus => (),
-        }
-    }
-
-    pub fn key_left(&mut self) {
-        match self.stats {
-            CurrentPanel::PackageStatusPanel => (),
-            CurrentPanel::Unfocus => (),
         }
     }
 }

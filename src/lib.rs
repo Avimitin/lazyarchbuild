@@ -146,7 +146,7 @@ fn handle_key(
                     KeyCode::Char('g') => {
                         app.key_begining();
                         app.reset_input_mode();
-                    },
+                    }
                     _ => app.reset_input_mode(),
                 },
                 _ => app.reset_input_mode(),
