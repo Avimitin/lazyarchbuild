@@ -44,7 +44,13 @@ pub fn draw_welcome_page<B: Backend>(terminal: &mut terminal::Terminal<B>) -> an
                 "Fetching Package Info",
                 Style::default().add_modifier(Modifier::BOLD),
             )),
-            Spans::from("Please wait a secs..."),
+            Spans::from(""),
+            Spans::from(""),
+            Spans::from(""),
+            Spans::from("Please wait a secs, pulling data..."),
+            Spans::from(""),
+            Spans::from(""),
+            Spans::from(""),
         ];
 
         let paragraph = Paragraph::new(welcome_text)
