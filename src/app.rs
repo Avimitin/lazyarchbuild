@@ -35,7 +35,9 @@ impl std::default::Default for App {
 
 macro_rules! async_eval {
     ($code:block) => {
-        tokio::task::block_in_place(move || tokio::runtime::Handle::current().block_on($code))
+        tokio::task::block_in_place(move || {
+            tokio::runtime::Handle::current().block_on(async move { $code })
+        })
     };
 
     ($func:expr) => {
