@@ -3,13 +3,14 @@ use crossterm::event::KeyCode;
 use crate::component::{
     self,
     packages::{PkgInfo, PkgInfoBuilder},
+    menu,
 };
 use std::collections::HashMap;
 
 pub enum DisplayMode {
     ViewingPackageStatusTable,
     /// Show menu for package status table
-    PopUpPstMenu,
+    PopUpPstMenu(menu::PopUpMenu<&'static str>),
 }
 
 pub enum InputMode {
@@ -165,7 +166,29 @@ impl App {
 
     /// Set current display to a menu that showing available option for current selection
     pub fn show_pst_menu(&mut self) {
-        self.current_display = DisplayMode::PopUpPstMenu;
+        let current_selection = self.pkg_info_table.cursor.selected().unwrap_or(0);
+        let data = self.pkg_info_table.data.get(current_selection);
+        if data.is_none() {
+            return;
+        }
+        let data = data.unwrap();
+
+        let mut menu_items = Vec::new();
+
+        if !data.has_assignee() {
+            menu_items.push("Assign");
+        }
+
+        if data.has_marks() {
+            menu_items.push("Check Marks")
+        }
+
+        // TODO: Add drop menu when assigness is user
+
+        menu_items.push("View package details");
+        menu_items.push("View package build log");
+
+        self.current_display = DisplayMode::PopUpPstMenu(menu::PopUpMenu::from(menu_items));
     }
 
     pub fn key_down(&mut self) {
