@@ -8,7 +8,7 @@ use tui::{
     Frame,
 };
 
-use crate::component;
+use crate::component::{self, menu::PopUpMenu};
 
 pub fn draw_welcome_page<B: Backend>(terminal: &mut terminal::Terminal<B>) -> anyhow::Result<()> {
     terminal.draw(|frame| {
@@ -69,7 +69,7 @@ pub fn draw_welcome_page<B: Backend>(terminal: &mut terminal::Terminal<B>) -> an
     Ok(())
 }
 
-fn draw_pkg_table_frame<B: Backend>(
+pub fn draw_pkg_table_frame<B: Backend>(
     frame: &mut Frame<B>,
     data: &mut component::packages::PkgInfoTable,
 ) {
@@ -112,14 +112,6 @@ fn draw_pkg_table_frame<B: Backend>(
     frame.render_stateful_widget(table, layout[0], &mut data.cursor);
 }
 
-pub fn draw_package_table<B: Backend>(
-    terminal: &mut terminal::Terminal<B>,
-    data: &mut component::packages::PkgInfoTable,
-) -> anyhow::Result<()> {
-    terminal.draw(|frame| draw_pkg_table_frame(frame, data))?;
-    Ok(())
-}
-
 /// Build a rectangle that center itself at the middle
 fn build_centered_rect(x: u16, y: u16, r: Rect) -> Rect {
     let popup = Layout::default()
@@ -147,30 +139,26 @@ fn build_centered_rect(x: u16, y: u16, r: Rect) -> Rect {
         .split(popup[1])[1]
 }
 
-pub fn draw_popup_pst_menu<B: Backend>(
-    terminal: &mut terminal::Terminal<B>,
-    data: &mut component::packages::PkgInfoTable,
-) -> anyhow::Result<()> {
-    terminal.draw(|frame| {
-        draw_pkg_table_frame(frame, data);
-        let block = Block::default().title("Menu").borders(Borders::ALL);
-        let items = vec![
-            ListItem::new("Add").style(Style::default().fg(tui::style::Color::White)),
-            ListItem::new("Drop").style(Style::default().fg(tui::style::Color::White)),
-            ListItem::new("View Log").style(Style::default().fg(tui::style::Color::White)),
-            ListItem::new("View PKGBUILD").style(Style::default().fg(tui::style::Color::White)),
-        ];
-        let items = List::new(items)
-            .block(block)
-            .highlight_style(
-                Style::default()
-                    .bg(tui::style::Color::LightGreen)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .highlight_symbol(">> ");
-        let draw_area = build_centered_rect(60, 20, frame.size());
-        frame.render_widget(Clear, draw_area);
-        frame.render_widget(items, draw_area);
-    })?;
-    Ok(())
+pub fn draw_popup_menu_frame<B: Backend, T>(
+    frame: &mut Frame<B>,
+    menu: &PopUpMenu<T>
+) {
+    let block = Block::default().title("Menu").borders(Borders::ALL);
+    let items = vec![
+        ListItem::new("Add").style(Style::default().fg(tui::style::Color::White)),
+        ListItem::new("Drop").style(Style::default().fg(tui::style::Color::White)),
+        ListItem::new("View Log").style(Style::default().fg(tui::style::Color::White)),
+        ListItem::new("View PKGBUILD").style(Style::default().fg(tui::style::Color::White)),
+    ];
+    let items = List::new(items)
+        .block(block)
+        .highlight_style(
+            Style::default()
+                .bg(tui::style::Color::LightGreen)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol(">> ");
+    let draw_area = build_centered_rect(60, 20, frame.size());
+    frame.render_widget(Clear, draw_area);
+    frame.render_widget(items, draw_area);
 }
