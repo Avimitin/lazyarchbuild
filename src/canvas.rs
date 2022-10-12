@@ -139,26 +139,9 @@ fn build_centered_rect(x: u16, y: u16, r: Rect) -> Rect {
         .split(popup[1])[1]
 }
 
-pub fn draw_popup_menu_frame<B: Backend, T>(
-    frame: &mut Frame<B>,
-    menu: &PopUpMenu<T>
-) {
-    let block = Block::default().title("Menu").borders(Borders::ALL);
-    let items = vec![
-        ListItem::new("Add").style(Style::default().fg(tui::style::Color::White)),
-        ListItem::new("Drop").style(Style::default().fg(tui::style::Color::White)),
-        ListItem::new("View Log").style(Style::default().fg(tui::style::Color::White)),
-        ListItem::new("View PKGBUILD").style(Style::default().fg(tui::style::Color::White)),
-    ];
-    let items = List::new(items)
-        .block(block)
-        .highlight_style(
-            Style::default()
-                .bg(tui::style::Color::LightGreen)
-                .add_modifier(Modifier::BOLD),
-        )
-        .highlight_symbol(">> ");
+pub fn draw_popup_menu_frame<B: Backend>(frame: &mut Frame<B>, menu: &PopUpMenu) {
+    let menu = menu.to_renderable();
     let draw_area = build_centered_rect(60, 20, frame.size());
     frame.render_widget(Clear, draw_area);
-    frame.render_widget(items, draw_area);
+    frame.render_widget(menu, draw_area);
 }

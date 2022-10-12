@@ -95,14 +95,12 @@ pub fn clean_up_terminal<B: Backend + std::io::Write>(
 }
 
 fn render<B: Backend>(terminal: &mut Terminal<B>, app: &mut app::App) -> anyhow::Result<()> {
-    terminal.draw(|frame| {
-        match app.current_display() {
-            app::DisplayMode::ViewingPackageStatusTable => {
-                canvas::draw_pkg_table_frame(frame, &mut app.pkg_info_table);
-            }
-            app::DisplayMode::PopUpPstMenu(items) => {
-                canvas::draw_popup_menu_frame(frame, items);
-            }
+    terminal.draw(|frame| match app.current_display() {
+        app::DisplayMode::ViewingPackageStatusTable => {
+            canvas::draw_pkg_table_frame(frame, &mut app.pkg_info_table);
+        }
+        app::DisplayMode::PopUpPstMenu(items) => {
+            canvas::draw_popup_menu_frame(frame, items);
         }
     })?;
     Ok(())

@@ -1,16 +1,15 @@
 use crossterm::event::KeyCode;
 
 use crate::component::{
-    self,
+    self, menu,
     packages::{PkgInfo, PkgInfoBuilder},
-    menu,
 };
 use std::collections::HashMap;
 
 pub enum DisplayMode {
     ViewingPackageStatusTable,
     /// Show menu for package status table
-    PopUpPstMenu(menu::PopUpMenu<&'static str>),
+    PopUpPstMenu(menu::PopUpMenu),
 }
 
 pub enum InputMode {
@@ -188,7 +187,7 @@ impl App {
         menu_items.push("View package details");
         menu_items.push("View package build log");
 
-        self.current_display = DisplayMode::PopUpPstMenu(menu::PopUpMenu::from(menu_items));
+        self.current_display = DisplayMode::PopUpPstMenu(menu::PopUpMenu::from(&menu_items));
     }
 
     pub fn key_down(&mut self) {
