@@ -47,13 +47,11 @@ pub async fn run() -> anyhow::Result<()> {
 
     let (tx, rx) = mpsc::channel();
 
-    let is_running = Arc::new(AtomicBool::new(true));
-
-    spawn_terminal_event_sender(tx, Arc::clone(&is_running));
+    spawn_terminal_event_sender(tx, Arc::clone(&app_data.is_running));
 
     let mut first_run = true;
 
-    while is_running.load(std::sync::atomic::Ordering::SeqCst) {
+    while app_data.is_running() {
         if first_run {
             canvas::draw_welcome_page(&mut terminal)?;
             app_data.update().unwrap();
@@ -69,9 +67,7 @@ pub async fn run() -> anyhow::Result<()> {
             .recv()
             .with_context(|| "Event channel close unexpectedly")?;
         match event {
-            events::Events::KeyEvent(keycode) => {
-                handle_key(keycode, Arc::clone(&is_running), &mut app_data)?
-            }
+            events::Events::KeyEvent(keycode) => app_data.handle_input(keycode),
         }
     }
 
@@ -119,48 +115,4 @@ fn spawn_terminal_event_sender(tx: mpsc::Sender<events::Events>, app_stats: Arc<
             };
         }
     });
-}
-
-fn handle_key(
-    keycode: KeyCode,
-    running: Arc<AtomicBool>,
-    app: &mut app::App,
-) -> anyhow::Result<()> {
-    match &app.input_mode {
-        app::InputMode::Normal => match keycode {
-            KeyCode::Char('q') => running.store(false, std::sync::atomic::Ordering::SeqCst),
-            KeyCode::Char('G') => app.key_end(),
-            KeyCode::Char('g') => {
-                app.input_mode = app::InputMode::HasPrefix(vec![KeyCode::Char('g')]);
-            }
-            KeyCode::Up | KeyCode::Char('j') => app.key_up(),
-            KeyCode::Down | KeyCode::Char('k') => app.key_down(),
-            #[allow(clippy::single_match)]
-            KeyCode::Enter => match app.current_display() {
-                app::DisplayMode::ViewingPackageStatusTable => {
-                    app.show_pst_menu();
-                }
-                _ => (),
-            },
-            _ => (),
-        },
-        app::InputMode::HasPrefix(prefix) => {
-            if prefix.is_empty() {
-                panic!("some logical error occurs for keys");
-            }
-            match prefix[0] {
-                KeyCode::Char('g') => match keycode {
-                    // handle key 'gg'
-                    KeyCode::Char('g') => {
-                        app.key_begining();
-                        app.reset_input_mode();
-                    }
-                    _ => app.reset_input_mode(),
-                },
-                _ => app.reset_input_mode(),
-            }
-        }
-    }
-
-    Ok(())
 }

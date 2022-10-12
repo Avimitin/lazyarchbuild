@@ -4,7 +4,10 @@ use crate::component::{
     self, menu,
     packages::{PkgInfo, PkgInfoBuilder},
 };
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{atomic::AtomicBool, Arc},
+};
 
 pub enum DisplayMode {
     ViewingPackageStatusTable,
@@ -17,8 +20,11 @@ pub enum InputMode {
     HasPrefix(Vec<KeyCode>),
 }
 
+/// A data collection of current running status, data resources...etc. Each modification will
+/// triger a re-render.
 pub struct App {
     current_display: DisplayMode,
+    pub is_running: Arc<AtomicBool>,
 
     pub input_mode: InputMode,
     pub pkg_info_table: component::packages::PkgInfoTable,
@@ -30,6 +36,7 @@ impl std::default::Default for App {
             current_display: DisplayMode::ViewingPackageStatusTable,
             input_mode: InputMode::Normal,
             pkg_info_table: component::packages::PkgInfoTable::default(),
+            is_running: Arc::new(AtomicBool::new(true)),
         }
     }
 }
@@ -159,6 +166,60 @@ impl App {
         Ok(())
     }
 
+    /// Mutate self data based on the input
+    pub fn handle_input(&mut self, keycode: KeyCode) {
+        match &self.input_mode {
+            InputMode::Normal => self.handle_normal_input(keycode),
+            InputMode::HasPrefix(prefix) => self.handle_input_with_prefix(keycode, prefix.to_vec()),
+        }
+    }
+
+    pub fn shutdown(&mut self) {
+        self.is_running
+            .store(false, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.is_running.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn handle_normal_input(&mut self, keycode: KeyCode) {
+        match keycode {
+            KeyCode::Char('q') => self.shutdown(),
+            KeyCode::Char('G') => self.key_end(),
+            KeyCode::Char('g') => {
+                self.input_mode = InputMode::HasPrefix(vec![KeyCode::Char('g')]);
+            }
+            KeyCode::Up | KeyCode::Char('j') => self.key_up(),
+            KeyCode::Down | KeyCode::Char('k') => self.key_down(),
+            #[allow(clippy::single_match)]
+            KeyCode::Enter => match self.current_display() {
+                DisplayMode::ViewingPackageStatusTable => {
+                    self.show_pst_menu();
+                }
+                _ => (),
+            },
+            _ => (),
+        }
+    }
+
+    fn handle_input_with_prefix(&mut self, keycode: KeyCode, prefix: Vec<KeyCode>) {
+        if prefix.is_empty() {
+            panic!("some logical error occurs for keys");
+        }
+        match prefix[0] {
+            KeyCode::Char('g') => match keycode {
+                // handle key 'gg'
+                KeyCode::Char('g') => {
+                    self.key_begining();
+                    self.reset_input_mode();
+                }
+                _ => self.reset_input_mode(),
+            },
+            _ => self.reset_input_mode(),
+        }
+    }
+
     pub fn current_display(&self) -> &DisplayMode {
         &self.current_display
     }
@@ -191,34 +252,38 @@ impl App {
     }
 
     pub fn key_down(&mut self) {
+        use DisplayMode::*;
         let table = &mut self.pkg_info_table;
-        match self.current_display {
-            DisplayMode::ViewingPackageStatusTable => table.next(),
-            _ => (),
+        match &mut self.current_display {
+            ViewingPackageStatusTable => table.next(),
+            PopUpPstMenu(ref mut menu) => {
+                menu.next();
+            }
         }
     }
 
     pub fn key_up(&mut self) {
+        use DisplayMode::*;
         let table = &mut self.pkg_info_table;
-        match self.current_display {
-            DisplayMode::ViewingPackageStatusTable => table.previous(),
-            _ => (),
+        match &mut self.current_display {
+            ViewingPackageStatusTable => table.previous(),
+            PopUpPstMenu(ref mut menu) => {
+                menu.previous();
+            }
         }
     }
 
     pub fn key_begining(&mut self) {
         let table = &mut self.pkg_info_table;
-        match self.current_display {
-            DisplayMode::ViewingPackageStatusTable => table.beginning(),
-            _ => (),
+        if let DisplayMode::ViewingPackageStatusTable = self.current_display {
+            table.beginning()
         }
     }
 
     pub fn key_end(&mut self) {
         let table = &mut self.pkg_info_table;
-        match self.current_display {
-            DisplayMode::ViewingPackageStatusTable => table.end(),
-            _ => (),
+        if let DisplayMode::ViewingPackageStatusTable = self.current_display {
+            table.end()
         }
     }
 }
